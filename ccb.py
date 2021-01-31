@@ -24,13 +24,10 @@ class Main(commands.Cog):
 
 
     @commands.command(pass_context=True)
-    async def validuser(self, ctx):
-        mikeid = 298282227047989262
-        print(ctx.author.id)
-        if ctx.author.id == mikeid:
-            await ctx.send("Mike is here!")
-        else:
-            await ctx.send("You are An Impostor")
+    async def test(self, ctx):
+        user_id = ctx.author.id
+        channel = bot.get_channel(805212937438101535)
+        await channel.send("SOLVED!! THE RIDDLE HAS BEEN SOLVED BY <@{0}>".format(user_id))
 
     @commands.command(pass_context=True)
     async def spam(self, ctx):
@@ -81,6 +78,28 @@ class Main(commands.Cog):
 
         embed.set_footer(text='Challenge Released')
         await ctx.send(embed=embed)
+
+    @commands.command()
+    async def mcnerds2020(self, ctx):
+        user = bot.get_user(ctx.author.id)
+        print("Step 5 Completed:" + str(user))
+        id = ctx.author.id
+        await ctx.send("Congratulations you won it is time to let everyone know!")
+        y = 1
+        dot = ' . '
+        msg = await ctx.send('Loading')
+
+        con = 'Loading'
+        x = 1
+        while x <= 4:
+            await asyncio.sleep(1.0)
+            await msg.edit(content=con)
+            con += dot
+            x += 1
+        await msg.edit(content="Done!")
+
+        channel = bot.get_channel(805212937438101535)
+        await channel.send("SOLVED!! THE RIDDLE HAS BEEN SOLVED BY <@{0}>".format(id))
 
 
 @bot.event
