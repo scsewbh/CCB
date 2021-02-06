@@ -4,7 +4,7 @@ import discord
 import random
 import os
 import config
-
+#You will be notified when profuct drops below $_____
 
 #TOKEN = os.environ.get("TOKEN")
 TOKEN = config.TOKEN
@@ -14,6 +14,18 @@ bot = commands.Bot(command_prefix=commands.when_mentioned_or('!'))
 class Main(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+    @commands.command(pass_context=True)
+    async def watch(self, ctx, arg):
+        author = ctx.message.author.id
+        channel_id = ctx.message.channel.id
+        if channel_id == 805212937438101535:
+            print(author)
+            a = '<@{0}>'.format(author)
+            msg = ' Price Drop Alert for ...'
+            await author.send(a + msg)
+        else:
+            print("That's you")
 
     @commands.command(pass_context=True)
     async def sanjay(self, ctx):
