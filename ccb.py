@@ -5,7 +5,8 @@ import random
 import os
 import config
 import mysql.connector
-#You will be notified when profuct drops below $_____
+import db
+#You will be notified when product drops below $_____
 
 #TOKEN = os.environ.get("TOKEN")
 TOKEN = config.TOKEN
@@ -75,14 +76,21 @@ class Main(commands.Cog):
             if PID != None:
                 flag = verify_watch(PID, author)
                 if flag == 1:
-                    await ctx.send(a_tag + ', product is already in your personal monitor.')
+                    await ctx.send(a_tag + ', This product is already in your personal monitor.')
                 elif flag == 3:
-                    await ctx.send(a_tag + ', your personal monitor is full (5/5). Please remove one with the *-stop* command to add another.')
+                    await ctx.send(a_tag + ', Your personal monitor is full (5/5). Please remove one with the *-stop* command to add another.')
                 else:
-                    msg = ' Price Drop Alert for ...'
-                    await ctx.send(a_tag + msg)
+                    instance = db.AMZN()
+                    value = instance.page_parser(PID)
+                    if value:
+                        msg = ', You will be notified when your product drops below current price of $' + value +'.'
+                        await ctx.send(a_tag + msg)
+                    elif value == -1:
+                        await ctx.send(a_tag + ', Sorry price cannot be found.')
+                    else:
+                        await ctx.send(a_tag + ', Your link appears to be invalid. Please make sure your link is a product link and has a visible price. Please contact a moderator for additional support.')
             else:
-                await ctx.send(a_tag + ', your link appears to be invalid. Please make sure your link is correct.')
+                await ctx.send(a_tag + ', Your link appears to be invalid. Please make sure your link is a product link. Also, double check your link is valid. Please contact a moderator for additional support.')
 
 
     @commands.command(pass_context=True)
