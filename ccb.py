@@ -4,12 +4,62 @@ import discord
 import random
 import os
 import config
+import mysql.connector
 #You will be notified when profuct drops below $_____
 
 #TOKEN = os.environ.get("TOKEN")
 TOKEN = config.TOKEN
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('!'))
 
+mydb = mysql.connector.connect(
+    host="34.86.36.213",
+    user="root",
+    password="Heroku3031*SPN",
+    database="discord"
+)
+
+amzn_basep_url = 'https://www.amazon.com/dp/'
+
+def verify_watch(PID, author):
+    mycursor = mydb.cursor()
+    sql = "SELECT PID_1, PID_2, PID_3, PID_4, PID_5 from members where USER_ID = '%s'" % (author)
+    # msql = "SELECT * FROM members"
+    # qsql = "INSERT IGNORE INTO members (Username, PID_1, PID_2, PID_3, PID_4, PID_5) VALUES (%s, %s, %s, %s, %s, %s)"
+    # Insert Ignore allows me to insert products and skip over the duplicates and the error it gives.
+    mycursor.execute(sql)
+    PIDs = mycursor.fetchall()
+    if PIDs == []:
+        sql = "INSERT IGNORE INTO member (USER_ID, PID_1) VALUES (%s, %s)" % (author, PID)
+        mycursor.execute(sql)
+        mydb.commit()
+        return 2
+    else:
+        print(PIDs)
+        if PID in PIDs[0]:
+            return 1  # One for PID already in your personal monitor
+        elif PID[0] or PID[1] or PID[2] or PID[3] or PID[4]:
+            return 2  # Good to Go
+        else:
+            return 3  # Full or Error
+
+def link_format_verifier(url):
+    if 'amazon.com' not in url:
+        return None
+    try:
+        x = url.split('/dp/')[1]
+        print(x)
+        try:
+            if x == '':
+                return None
+            elif '/' in x:
+                x = x.split('/')[0]
+                return x
+            elif len(x) < 15:
+                return x
+        except IndexError:
+            return None
+    except IndexError:
+        return None
 
 class Main(commands.Cog):
     def __init__(self, bot):
@@ -18,14 +68,22 @@ class Main(commands.Cog):
     @commands.command(pass_context=True)
     async def watch(self, ctx, arg):
         author = ctx.message.author.id
+        a_tag = '<@{0}>'.format(author)
         channel_id = ctx.message.channel.id
         if channel_id == 805212937438101535:
-            print(author)
-            a = '<@{0}>'.format(author)
-            msg = ' Price Drop Alert for ...'
-            await author.send(a + msg)
-        else:
-            print("That's you")
+            PID = link_format_verifier(arg)
+            if PID != None:
+                flag = verify_watch(PID, author)
+                if flag == 1:
+                    await ctx.send(a_tag + ', product is already in your personal monitor.')
+                elif flag == 3:
+                    await ctx.send(a_tag + ', your personal monitor is full (5/5). Please remove one with the *-stop* command to add another.')
+                else:
+                    msg = ' Price Drop Alert for ...'
+                    await ctx.send(a_tag + msg)
+            else:
+                await ctx.send(a_tag + ', your link appears to be invalid. Please make sure your link is correct.')
+
 
     @commands.command(pass_context=True)
     async def sanjay(self, ctx):

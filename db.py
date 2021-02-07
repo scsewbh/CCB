@@ -17,24 +17,35 @@ mydb = mysql.connector.connect(
 
 amzn_basep_url = 'https://www.amazon.com/dp/'
 
+#CREATE TABLE products (PID VARCHAR(20) PRIMARY KEY, Link TEXT);
+#CREATE TABLE item_data (PID VARCHAR(20), Name TEXT, Price DECIMAL(5,2), Img_URL TEXT, PRIMARY KEY (PID), FOREIGN KEY (PID) REFERENCES products(PID));
+#CREATE TABLE sync_data (ProductName VARCHAR(255), Price DECIMAL(5,2), PRIMARY KEY (ProductName), FOREIGN KEY (ProductName) REFERENCES products(ProductName));
+#CREATE TABLE members (USER_ID VARCHAR(30), PID_1 VARCHAR(20), PID_2 VARCHAR(20), PID_3 VARCHAR(20), PID_4 VARCHAR(20), PID_5 VARCHAR(20), PRIMARY KEY (USER_ID));
+
+def verify_watch(PID, author):
+    mycursor = mydb.cursor()
+    sql = "SELECT PID_1, PID_2, PID_3, PID_4, PID_5 from members where Username = '%s'" % (author)
+    # msql = "SELECT * FROM members"
+    # qsql = "INSERT IGNORE INTO members (Username, PID_1, PID_2, PID_3, PID_4, PID_5) VALUES (%s, %s, %s, %s, %s, %s)"
+    # Insert Ignore allows me to insert products and skip over the duplicates and the error it gives.
+    mycursor.execute(sql)
+    PIDs = mycursor.fetchall()
+    if PID in PIDs[0]:
+        return 1  # One for PID already in your personal monitor
+    elif PIDs[0] == 'None' or PIDs[1] == 'None' or PIDs[2] == 'None' or PIDs[3] == 'None' or PIDs[4] == 'None':
+        return 2  # Good to Go
+    else:
+        return 3  # Full or Error
+
 class AMZN:
     def __init__(self):
-        #self.browser = webdriver.Chrome(executable_path='C:\\Users\\scsew\\Desktop\\chromedriver.exe', chrome_options=chrome_options)
+        self.browser = webdriver.Chrome(executable_path='C:\\Users\\scsew\\Desktop\\chromedriver.exe', chrome_options=chrome_options)
         self.data = []
         self.page_data = {}
         self.item_dataHolder = ()
         self.sync_dataHolder = ()
         self.item_data_names = ['name', 'price', 'img_url', 'product_id']
         self.sync_data_names = ['product_id', 'discounted_price']
-
-    def verify(self, PID, author):
-        mycursor = mydb.cursor()
-        sql = "SELECT PID_1, PID_2, PID_3, PID_4, PID_5 from members where Username = 'bobby#4533'"
-        msql = "SELECT * FROM members"
-        # Insert Ignore allows me to insert products and skip over the duplicates and the error it gives.
-        x = mycursor.execute(msql)
-        print(x)
-
 
     #--------------------------------ADDING TO DB---------------------------------
     def passToDatabase(self):
@@ -154,5 +165,4 @@ class AMZN:
             mydb.commit()
 
 
-instance = AMZN()
-instance.verify('dfgdfg', 'bobby#4533')
+verify_watch('dfgdfg', 'Happy#e4564')
