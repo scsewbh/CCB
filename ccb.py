@@ -68,6 +68,7 @@ class Main(commands.Cog):
 
     @commands.command(pass_context=True)
     async def watch(self, ctx, arg):
+
         author = ctx.message.author.id
         a_tag = '<@{0}>'.format(author)
         channel_id = ctx.message.channel.id
@@ -80,18 +81,20 @@ class Main(commands.Cog):
                 elif flag == 3:
                     await ctx.send(a_tag + ', Your personal monitor is full (5/5). Please remove one with the *-stop* command to add another.')
                 else:
+                    loading = await ctx.send('https://cdn.discordapp.com/attachments/805212937438101535/808186294144335872/loading.gif')
                     instance = db.AMZN()
                     value = instance.page_parser(PID)
+                    await loading.delete()
                     if value:
-                        msg = ', You will be notified when your product drops below current price of $' + value +'.'
-                        await ctx.send(a_tag + msg)
-                    elif value == -1:
-                        await ctx.send(a_tag + ', Sorry price cannot be found.')
+                        if value == -1:
+                            await ctx.send(a_tag + ', Sorry price cannot be found.')
+                        else:
+                            msg = ', You will be notified when your product *(' + value[1] + ')* drops below the current price of $' + value[0] +'.'
+                            await ctx.send(a_tag + msg)
                     else:
                         await ctx.send(a_tag + ', Your link appears to be invalid. Please make sure your link is a product link and has a visible price. Please contact a moderator for additional support.')
             else:
                 await ctx.send(a_tag + ', Your link appears to be invalid. Please make sure your link is a product link. Also, double check your link is valid. Please contact a moderator for additional support.')
-
 
     @commands.command(pass_context=True)
     async def sanjay(self, ctx):

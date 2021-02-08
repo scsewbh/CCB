@@ -19,7 +19,7 @@ amzn_basep_url = 'https://www.amazon.com/dp/'
 
 #CREATE TABLE products (PID VARCHAR(20) PRIMARY KEY, Link TEXT);
 #CREATE TABLE item_data (PID VARCHAR(20), Name TEXT, Price DECIMAL(5,2), Img_URL TEXT, PRIMARY KEY (PID), FOREIGN KEY (PID) REFERENCES products(PID));
-#CREATE TABLE sync_data (ProductName VARCHAR(255), Price DECIMAL(5,2), PRIMARY KEY (ProductName), FOREIGN KEY (ProductName) REFERENCES products(ProductName));
+#CREATE TABLE sync_data (PID VARCHAR(20), Price DECIMAL(5,2), PRIMARY KEY (PID), FOREIGN KEY (PID) REFERENCES products(PID));
 #CREATE TABLE members (USER_ID VARCHAR(30), PID_1 VARCHAR(20), PID_2 VARCHAR(20), PID_3 VARCHAR(20), PID_4 VARCHAR(20), PID_5 VARCHAR(20), PRIMARY KEY (USER_ID));
 
 class AMZN:
@@ -29,7 +29,7 @@ class AMZN:
         self.page_data = {}
         self.item_dataHolder = ()
         self.sync_dataHolder = ()
-        self.item_data_names = ['name', 'price', 'img_url', 'product_id']
+        self.item_data_names = ['product_id', 'name', 'price', 'img_url']
         self.sync_data_names = ['product_id', 'discounted_price']
 
     #--------------------------------ADDING TO DB---------------------------------
@@ -74,6 +74,8 @@ class AMZN:
         self.page_data['name'] = product_name
         temp = 0
         for line in splitted:
+            if 'Total Price: $' in line:
+                break
             if 'Price: $' in line:
                 temp += 1
                 if temp == 1:
@@ -95,7 +97,7 @@ class AMZN:
         if self.page_data['price'] == 'Not Listed':
             return -1
         else:
-            return self.page_data['price']
+            return (self.page_data['price'], self.page_data['name'])
 
     #INITIAL PASS SETUP
     def dataOrganizer(self):
@@ -120,6 +122,7 @@ class AMZN:
         # sync_data (ProductName VARCHAR(255), Price DECIMAL(5,2), Savings TINYINT, PRIMARY KEY (ProductName), FOREIGN KEY (ProductName) REFERENCES products(ProductName))")
         if self.page_data['price'] != 'Not Listed':
             mycursor = mydb.cursor()
+            print(self.item_dataHolder)
             sql = "INSERT IGNORE INTO item_data (PID, Name, Price, Img_URL) VALUES (%s, %s, %s, %s)"  # Insert Ignore allows me to insert products and skip over the duplicates and the error it gives.
             mycursor.execute(sql, self.item_dataHolder)
             mydb.commit()
