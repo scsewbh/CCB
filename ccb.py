@@ -10,7 +10,7 @@ import db
 
 #TOKEN = os.environ.get("TOKEN")
 TOKEN = config.TOKEN
-bot = commands.Bot(command_prefix=commands.when_mentioned_or('!'))
+bot = commands.Bot(command_prefix=commands.when_mentioned_or('~'))
 
 mydb = mysql.connector.connect(
     host="34.86.36.213",
@@ -21,6 +21,15 @@ mydb = mysql.connector.connect(
 
 amzn_basep_url = 'https://www.amazon.com/dp/'
 
+
+def removeFrom(num, user_id):
+    path = 'PID_' + str(num)
+    mycursor = mydb.cursor()
+    sql = "UPDATE members SET %s = %s where USER_ID = '%s'" % (path, 'null', user_id)
+    mycursor.execute(sql)
+    mydb.commit()
+    print(mycursor.rowcount, "item was removed from Member Table.")
+
 def verify_watch(PID, author):
     mycursor = mydb.cursor()
     sql = "SELECT PID_1, PID_2, PID_3, PID_4, PID_5 from members where USER_ID = '%s'" % (author)
@@ -30,18 +39,38 @@ def verify_watch(PID, author):
     mycursor.execute(sql)
     PIDs = mycursor.fetchall()
     if PIDs == []:
-        sql = "INSERT IGNORE INTO member (USER_ID, PID_1) VALUES (%s, %s)" % (author, PID)
+        sql = "INSERT IGNORE INTO members (USER_ID, PID_1) VALUES ('%s', '%s')" % (author, PID)
         mycursor.execute(sql)
         mydb.commit()
-        return 2
+        return -2
     else:
-        print(PIDs)
+        print(PID)
+        print(PIDs[0])
         if PID in PIDs[0]:
-            return 1  # One for PID already in your personal monitor
-        elif PID[0] or PID[1] or PID[2] or PID[3] or PID[4]:
-            return 2  # Good to Go
+            return -1  # One for PID already in your personal monitor
+        elif not PIDs[0][0] or not PIDs[0][1] or not PIDs[0][2] or not PIDs[0][3] or not PIDs[0][4]:
+            for x in range(0,5):
+                if not PIDs[0][x]:
+                    print(x)
+                    return x
         else:
-            return 3  # Full or Error
+            return -3  # Full or Error
+
+def verify_stop(PID, author):
+    mycursor = mydb.cursor()
+    sql = "SELECT PID_1, PID_2, PID_3, PID_4, PID_5 from members where USER_ID = '%s'" % (author)
+    mycursor.execute(sql)
+    PIDs = mycursor.fetchall()
+    if PIDs == []:
+        return -1 #There are no products in your personal monitor.
+    else:
+        if PID in PIDs[0]:
+            index = PIDs[0].index(PID)
+            index += 1
+            return index
+        else:
+            return -3  # Full or Error
+
 
 def link_format_verifier(url):
     if 'amazon.com' not in url:
@@ -57,6 +86,9 @@ def link_format_verifier(url):
                 return x
             elif len(x) < 15:
                 return x
+            elif '?ref' in x:
+                x = x.split('?ref')[0]
+                return x
         except IndexError:
             return None
     except IndexError:
@@ -65,6 +97,25 @@ def link_format_verifier(url):
 class Main(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+    @commands.command(pass_context=True)
+    async def stop(self, ctx, arg):
+        author = ctx.message.author.id
+        a_tag = '<@{0}>'.format(author)
+        channel_id = ctx.message.channel.id
+        if channel_id == 805212937438101535:
+            PID = link_format_verifier(arg)
+            if PID != None:
+                flag = verify_stop(PID, author)
+                if flag == -1:
+                    await ctx.send(a_tag + ', There are no products currently in your personal monitor.')
+                elif flag == -3:
+                    await ctx.send(a_tag + ', This product is not in your personal monitor. Please use the *~balance* command to view your products.')
+                else:
+                    removeFrom(flag, author)
+                    await ctx.send(a_tag + ', Successfully Removed.')
+            else:
+                await ctx.send(a_tag + ', Your link appears to be invalid. Please make sure your link is a product link. Also, double check your link is valid. Please contact a moderator for additional support.')
 
     @commands.command(pass_context=True)
     async def watch(self, ctx, arg):
@@ -76,20 +127,20 @@ class Main(commands.Cog):
             PID = link_format_verifier(arg)
             if PID != None:
                 flag = verify_watch(PID, author)
-                if flag == 1:
+                if flag == -1:
                     await ctx.send(a_tag + ', This product is already in your personal monitor.')
-                elif flag == 3:
+                elif flag == -3:
                     await ctx.send(a_tag + ', Your personal monitor is full (5/5). Please remove one with the *-stop* command to add another.')
                 else:
                     loading = await ctx.send('https://cdn.discordapp.com/attachments/805212937438101535/808186294144335872/loading.gif')
                     instance = db.AMZN()
-                    value = instance.page_parser(PID)
+                    value = instance.page_parser(PID, flag, author)
                     await loading.delete()
                     if value:
                         if value == -1:
                             await ctx.send(a_tag + ', Sorry price cannot be found.')
                         else:
-                            msg = ', You will be notified when your product *(' + value[1] + ')* drops below the current price of $' + value[0] +'.'
+                            msg = ', You will be notified when your product (*' + value[1] + '*) drops below the current price of $' + value[0] +'.'
                             await ctx.send(a_tag + msg)
                     else:
                         await ctx.send(a_tag + ', Your link appears to be invalid. Please make sure your link is a product link and has a visible price. Please contact a moderator for additional support.')

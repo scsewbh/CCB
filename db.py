@@ -32,17 +32,26 @@ class AMZN:
         self.item_data_names = ['product_id', 'name', 'price', 'img_url']
         self.sync_data_names = ['product_id', 'discounted_price']
 
+
+    def addToMember(self, path, pid, user_id):
+        path = 'PID_' + str(path+1)
+        print(path)
+        mycursor = mydb.cursor()
+        sql = "UPDATE members SET %s = '%s' where USER_ID = '%s'" %(path, pid, user_id)
+        mycursor.execute(sql)
+        mydb.commit()
+        print(mycursor.rowcount, "item was inserted Member Table.")
+
     #--------------------------------ADDING TO DB---------------------------------
     def passToDatabase(self):
         mycursor = mydb.cursor()
         sql = "INSERT IGNORE INTO products (PID, Link) VALUES (%s, %s)"
-        #Insert Ignore allows me to insert products and skip over the duplicates and the error it gives.
         mycursor.executemany(sql, self.data)
         mydb.commit()
-        print(mycursor.rowcount, "was inserted to table.")
+        print(mycursor.rowcount, "row was inserted Product Table.")
 
     #------------------------------PARSING----------------------------------------
-    def page_parser(self, PID):
+    def page_parser(self, PID, path, author):
         url = amzn_basep_url + PID
         self.data = [(PID, url)]
         try:
@@ -91,9 +100,13 @@ class AMZN:
             if 'price' not in self.page_data:
                 self.page_data['price'] = 'Not Listed'
         self.page_data['img_url'] = img_src
+        print(path)
+        if path != -2:
+            self.addToMember(path, PID, author)
         self.passToDatabase()
         self.dataOrganizer()
         self.passProductsToDBs()
+        self.browser.quit()
         if self.page_data['price'] == 'Not Listed':
             return -1
         else:
