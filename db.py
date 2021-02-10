@@ -8,13 +8,6 @@ import os
 
 chrome_options = webdriver.ChromeOptions()
 
-mydb = mysql.connector.connect(
-    host="34.86.36.213",
-    user="root",
-    password="Heroku3031*SPN",
-    database="discord"
-)
-
 amzn_basep_url = 'https://www.amazon.com/dp/'
 
 #CREATE TABLE products (PID VARCHAR(20) PRIMARY KEY, Link TEXT);
@@ -23,8 +16,9 @@ amzn_basep_url = 'https://www.amazon.com/dp/'
 #CREATE TABLE members (USER_ID VARCHAR(30), PID_1 VARCHAR(20), PID_2 VARCHAR(20), PID_3 VARCHAR(20), PID_4 VARCHAR(20), PID_5 VARCHAR(20), PRIMARY KEY (USER_ID));
 
 class AMZN:
-    def __init__(self):
+    def __init__(self, mydb):
         self.browser = webdriver.Chrome(executable_path='C:\\Users\\scsew\\Desktop\\chromedriver.exe', chrome_options=chrome_options)
+        self.mydb = mydb
         self.data = []
         self.page_data = {}
         self.item_dataHolder = ()
@@ -36,18 +30,20 @@ class AMZN:
     def addToMember(self, path, pid, user_id):
         path = 'PID_' + str(path+1)
         print(path)
-        mycursor = mydb.cursor()
+        mycursor = self.mydb.cursor()
         sql = "UPDATE members SET %s = '%s' where USER_ID = '%s'" %(path, pid, user_id)
         mycursor.execute(sql)
-        mydb.commit()
+        self.mydb.commit()
+        mycursor.close()
         print(mycursor.rowcount, "item was inserted Member Table.")
 
     #--------------------------------ADDING TO DB---------------------------------
     def passToDatabase(self):
-        mycursor = mydb.cursor()
+        mycursor = self.mydb.cursor()
         sql = "INSERT IGNORE INTO products (PID, Link) VALUES (%s, %s)"
         mycursor.executemany(sql, self.data)
-        mydb.commit()
+        self.mydb.commit()
+        mycursor.close()
         print(mycursor.rowcount, "row was inserted Product Table.")
 
     #------------------------------PARSING----------------------------------------
@@ -100,7 +96,6 @@ class AMZN:
             if 'price' not in self.page_data:
                 self.page_data['price'] = 'Not Listed'
         self.page_data['img_url'] = img_src
-        print(path)
         if path != -2:
             self.addToMember(path, PID, author)
         self.passToDatabase()
@@ -134,16 +129,17 @@ class AMZN:
         # item_data (Name TEXT, Price DECIMAL(5,2), Img_URL TEXT, ProductName VARCHAR(255), PRIMARY KEY (ProductName), FOREIGN KEY (ProductName) REFERENCES products(ProductName))")
         # sync_data (ProductName VARCHAR(255), Price DECIMAL(5,2), Savings TINYINT, PRIMARY KEY (ProductName), FOREIGN KEY (ProductName) REFERENCES products(ProductName))")
         if self.page_data['price'] != 'Not Listed':
-            mycursor = mydb.cursor()
-            print(self.item_dataHolder)
+            mycursor = self.mydb.cursor()
             sql = "INSERT IGNORE INTO item_data (PID, Name, Price, Img_URL) VALUES (%s, %s, %s, %s)"  # Insert Ignore allows me to insert products and skip over the duplicates and the error it gives.
             mycursor.execute(sql, self.item_dataHolder)
-            mydb.commit()
+            self.mydb.commit()
+            mycursor.close()
 
             #---------------------------------------------------------
 
-            mycursor = mydb.cursor()
+            mycursor = self.mydb.cursor()
             sql = "INSERT IGNORE INTO sync_data (PID, Price) VALUES (%s, %s)"  # Insert Ignore allows me to insert products and skip over the duplicates and the error it gives.
             mycursor.execute(sql, self.sync_dataHolder)
-            mydb.commit()
+            self.mydb.commit()
+            mycursor.close()
 
