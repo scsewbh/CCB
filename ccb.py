@@ -3,6 +3,7 @@ from discord.ext import commands
 import discord
 import random
 import os
+import time
 import config
 import mysql.connector
 import db
@@ -132,11 +133,31 @@ def grab_balance(author):
         return count, data
 
 
-
 class Main(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.channel_id = 805212937438101535
+
+    def monitor(self):
+        time.sleep(180)
+        mycursor = mydb.cursor()
+        sql = "select p.PID, i.Name, i.Price as I_Price, s.Price as S_Price, i.Img_URL, i.Price-s.Price as P_Value from sync_data s, item_data i, products p where p.PID = i.PID and p.PID = s.PID and i.Price-s.Price>=1 and i.Price>0 and s.Price>0"
+        mycursor.execute(sql)
+        data = mycursor.fetchall()
+        mycursor.close()
+        if data == []:
+            pass
+        else:
+            for var in data:
+
+
+    def get_users(self, PID):
+        mycursor = mydb.cursor()
+        sql = "select USER_ID from members where PID_1 = %s OR PID_2 = %s OR  PID_3 = %s OR PID_4 = %s OR PID_5 = %s)" %(PID, PID, PID, PID, PID)
+        mycursor.execute(sql)
+        data = mycursor.fetchall()
+        mycursor.close()
+
 
     @commands.command(pass_context=True)
     async def balance(self, ctx):
@@ -307,6 +328,7 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print('------')
+    bot.loop.create_task(monitor())
 
 
 bot.add_cog(Main(bot))
